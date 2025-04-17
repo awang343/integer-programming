@@ -57,24 +57,13 @@ class IPInstance:
 
         # Make sure the initial cost is strictly worse than any solution
         self.incumbent_cost = sum(self.costOfTest) + 1
-        self.fuckme = hq.heapify([])
+        self.heap = []
+        hq.heapify(self.heap)
 
         self.model = Model()  # CPLEX solver
-        self.init_model()
+        self.presolve()
 
-    def toString(self):
-        out = ""
-        out = f"Number of test: {self.numTests}\n"
-        out += f"Number of diseases: {self.numDiseases}\n"
-        cst_str = " ".join([str(i) for i in self.costOfTest])
-        out += f"Cost of tests: {cst_str}\n"
-        A_str = "\n".join(
-            [" ".join([str(j) for j in self.A[i]]) for i in range(0, self.A.shape[0])]
-        )
-        out += f"A:\n{A_str}"
-        return out
-
-    def init_model(self):
+    def presolve(self):
         # Compute 3d matrix
         int_A = self.A.astype(int)
         xor_matrix = np.bitwise_xor(int_A[:, :, np.newaxis], int_A[:, np.newaxis, :])
@@ -95,107 +84,78 @@ class IPInstance:
         )
 
         sol = self.model.solve()
-        hq.heappush((sol.objective_value, []))
+        hq.heappush(
+            self.heap, (sol.objective_value, [i.solution_value for i in self.tests], {})
+        )
 
-    def brancher(self, best_idx):
-        to_append = []
+    def analyze_node(self, popped_node):
+        obj_val, solution, assignments = popped_node
 
-        self.model.add_constraint(self.tests[best_idx] == 0, ctname="explorer")
-        sol0 = self.model.solve()
-        if sol0 is not None:
-            is_int = all(
-                [x.solution_value == 0 or x.solution_value == 1 for x in self.tests]
-            )
-            obj0 = sol0.objective_value
-            if obj0 < self.incumbent_cost:
-                if is_int:
-                    self.incumbent_cost = obj0
-                else:
-                    next_dist = 0.5
-                    next_idx = None
-                    for idx in self.unassigned:
-                        dist = abs(self.tests[idx].solution_value - 0.5)
-                        if dist <= next_dist:
-                            next_idx = idx
-                            next_dist = dist
-                    if next_idx is None:
-                        print([abs(self.tests[idx].solution_value - 0.5) for idx in self.unassigned])
-                        raise Exception("AHHHHH")
+        # 1. Check if popped node can be pruned
+        if obj_val >= self.incumbent_cost:
+            return
 
-                    to_append += [
-                        (best_idx, -1),
-                        (best_idx, 0, next_idx),
-                    ]
-        self.model.remove_constraint("explorer")
+        # if all([s in [0, 1] for s in solution]):
+        #     self.incumbent_cost = min(obj_val, self.incumbent_cost)
+        #     continue
 
-        self.model.add_constraint(self.tests[best_idx] == 1, ctname="explorer")
-        sol1 = self.model.solve()
-        if sol1 is not None:
-            is_int = all(
-                [x.solution_value == 0 or x.solution_value == 1 for x in self.tests]
-            )
-            obj1 = sol1.objective_value
-            if obj1 < self.incumbent_cost:
-                if is_int:
-                    self.incumbent_cost = obj1
-                else:
-                    next_dist = 0.5
-                    next_idx = None
-                    for idx in self.unassigned:
-                        dist = abs(self.tests[idx].solution_value - 0.5)
-                        if dist <= next_dist:
-                            next_idx = idx
-                            next_dist = dist
-                    if next_idx is None:
-                        print([abs(self.tests[idx].solution_value - 0.5) for idx in self.unassigned])
-                        raise Exception("AHHHHH")
-
-
-                    if obj1 < obj0:
-                        to_append = to_append + [
-                            (best_idx, -1),
-                            (best_idx, 1, next_idx),
-                        ]
-                    else:
-                        to_append = [
-                            (best_idx, -1),
-                            (best_idx, 1, next_idx),
-                        ] + to_append
-        self.model.remove_constraint("explorer")
-
-        return to_append
-
-    def solve(self):
-        # Start by setting rows that are all the same to 0
-        sol = self.model.solve()
+        # 2. If not, find the variable closest to 0.5
         best_dist = 0.5
         best_idx = None
-        for idx in self.unassigned:
-            dist = abs(self.tests[idx].solution_value - 0.5)
+        for idx, val in enumerate(solution):
+            dist = abs(val - 0.5)
             if dist <= best_dist:
                 best_idx = idx
                 best_dist = dist
+        # 3. Check if the two nodes added are integer solutions and update incumbent
 
-        dfs_stack = self.brancher(best_idx)
+        self.model.add_constraints(
+            [self.tests[var] == val for var, val in assignments.items()],
+            names=[str(var) for var in assignments],
+        )
 
-        # Main DFS loop
-        while dfs_stack:
-            # Solve the current LP
-            action = dfs_stack.pop(-1)
+        for val in [0, 1]:
+            self.model.add_constraint(self.tests[best_idx] == val, ctname="branch_var")
+            sol = self.model.solve()
+            self.model.remove_constraint("branch_var")
 
-            # If current action is to remove, we can just remove and continue
-            if action[1] == -1:
-                self.model.remove_constraint(str(action[0]))
-                self.unassigned.add(action[0])
+            if sol is None:
                 continue
-            else:
-                self.model.add_constraint(
-                    self.tests[action[0]] == action[1], ctname=str(action[0])
-                )
-                self.unassigned.remove(action[0])
 
-            best_idx = action[2]
-            to_append = self.brancher(best_idx)
-            dfs_stack.extend(to_append)
+            if all([v.solution_value in [0, 1] for v in self.tests]):
+                print(sol.objective_value)
+                self.incumbent_cost = min(sol.objective_value, self.incumbent_cost)
+                continue
+
+            new = assignments.copy()
+            new[best_idx] = val
+            hq.heappush(
+                self.heap,
+                (
+                    sol.objective_value,
+                    [x.solution_value for x in self.tests],
+                    new,
+                ),
+            )
+
+        self.model.remove_constraints([str(var) for var in assignments])
+
+    def solve(self):
+        while self.heap:
+            # 1. While heap is not empty, pop nodes
+            popped = hq.heappop(self.heap)
+            self.analyze_node(popped)
 
         return int(self.incumbent_cost)
+
+    def toString(self):
+        out = ""
+        out = f"Number of test: {self.numTests}\n"
+        out += f"Number of diseases: {self.numDiseases}\n"
+        cst_str = " ".join([str(i) for i in self.costOfTest])
+        out += f"Cost of tests: {cst_str}\n"
+        A_str = "\n".join(
+            [" ".join([str(j) for j in self.A[i]]) for i in range(0, self.A.shape[0])]
+        )
+        out += f"A:\n{A_str}"
+        return out
