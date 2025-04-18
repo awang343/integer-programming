@@ -1,0 +1,18 @@
+\subsection*{Metrics and Quality Assessment}
+
+To assess the quality of our solutions we added in KPIs into our model to track different metrics in our schedule 
+and then used these metrics to compare the quality of our solutions. We used the following metrics:
+\begin{itemize}
+    \item \textbf{Fairness: Total Hours Worked (per Employee):} The total number of hours worked over the schedule per employee. A example output looks like \texttt{[80, 80, 80, 80, 80, 80, 79, 79, 79, 80, 79, 80, 80, 79, 80, 79, 80]}. From this we can roughly evaluate the fairness of the overall schedule for each employee. 
+    \item \textbf{Fairness: Avg Hours Worked (Per Shift) (STD):} Standard deviation of the average hours worked per shift. An example output looks like \texttt{[0.0, 0.8784226190040044, 0.7208809596176432, 0.4994114182774381]}. Since the domain of hours per shift tends to be 4 - 8 hours, a standard deviation roughly around 1 is expected. 
+    \item \textbf{Fairness: Total Night Shifts Worked (Per Employee):} The total number of night shifts worked per employee. An example output looks like \texttt{[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]}. From this we can monitor whether or not our solutions overassign night shifts to any singular employee. 
+    \item \textbf{Fairness: Total Off Shifts (Per Employee):} The total number of off shifts per employee. An example output looks like \texttt{[3, 2, 3, 2, 3, 3, 4, 4, 4, 3, 4, 3, 3, 4, 2, 3, 3]}. Same as above, we can monitor whether or not our solutions underassign off shifts to any singular employee.
+    \item \textbf{Efficiency: AVG Distribution over shifts (per Employee):} The percent distribution of shifts worked, this moreso is a consequence of \texttt{min\_shifts} but it should reflect a healthy amount of \textt{off\_shifts} and \textt{night\_shifts} relative to other shifts. An example output looks like \texttt{[0.22268907563025211, 0.14285714285714285, 0.3067226890756303, 0.3277310924369748]}.
+    \item \textbf{Efficiency: AVG Hours Worked (Per Shift):} The average number of hours worked per shift. An example output looks like \texttt{[0.0, 6.911764705882353, 7.501960784313725, 7.416666666666666]}.
+    \item \textbf{Efficiency: AVG Extra Employees on Shift (Per Shift):}: The average number of extra employees on each shift. An example output looks like \texttt{['N/A', 0.6428571428571429, 0.07142857142857142, 2.7142857142857144]}.
+\end{itemize}
+
+Over all of the soltions that we solve our algorithm seems to score relatively high on fairness across employees
+and alright on efficiency over shifts (The algorithm greatly prefers shift 3 due to the effects of our valueselector in our search heuristics). 
+More specifically, employees tend to work roughly the same amount of night shifts and off shifts and approximately (with a std of 1 hour) the same amount of hours per shift. 
+They also tend to work about 7 - 8 hours per shift indicating high efficiency per shift (but oftentimes shift 3 would be overfilled i.e. has the most slack). 
