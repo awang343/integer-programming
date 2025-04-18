@@ -104,7 +104,7 @@ class IPInstance:
         best_idx = None
         for idx, val in enumerate(solution):
             dist = abs(val - 0.5)
-            if dist <= best_dist:
+            if dist >= best_dist:
                 best_idx = idx
                 best_dist = dist
         # 3. Check if the two nodes added are integer solutions and update incumbent
@@ -123,7 +123,6 @@ class IPInstance:
                 continue
 
             if all([v.solution_value in [0, 1] for v in self.tests]):
-                print(sol.objective_value)
                 self.incumbent_cost = min(sol.objective_value, self.incumbent_cost)
                 continue
 
