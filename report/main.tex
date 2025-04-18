@@ -45,11 +45,11 @@
 
 %%%%%%%%%%%%% INPUT HERE
 \newcommand\COURSE{CSCI2951-O}
-\newcommand\PROJECTNUMBER{II}
+\newcommand\PROJECTNUMBER{IV}
 \newcommand\FULLNAMEONE{John Wu}
 \newcommand\FULLNAMETWO{Alan Wang}
 \newcommand\CSLOGINS{jwu175 \quad awang343}       
-\newcommand\SCREENNAME{Below\_Me\_Is\_a\_B \quad pikachu} 
+\newcommand\SCREENNAME{CookedPotato \quad null} 
 
 \pagestyle{fancyplain}
 \headheight 35pt
@@ -64,21 +64,16 @@
 %%%%%%%%%%%%% INPUT HERE
 \begin{document}
 
-As a team of two people, we spent approximately $25$ person-hours. This was divided into about $6$ hours
-for constraint programming, $12$ hours for search, $4$ hours for metrics, and $3$ hours
-for the writing the report.
+As a team of two people, we spent approximately $24$ person-hours.
 \vspace{-10pt}
 \section*{Constraint Model Description}
 \label{sec:intro}
 \subsection*{Decision Variables}
 We split our decision variables into shift assignments $x$ and hours $h$:
 \begin{itemize}
-    \item \textbf{Shift Assignments x} - This was a 2d array with dimensions of \texttt{n\_employees} 
+    \item \textbf{Tests to Use} - This was a 2d array with dimensions of \texttt{n\_employees} 
         by \texttt{n\_days}. Each employee would be assigned either a shift (1,2,3) or an off shift (0)
         for each day.
-    \item \textbf{Hours h} - This was a 2d array with the same dimensions as shift assignments. If an
-        employee worked a shift on the given day, this array would contain how many hours they worked.
-        If they had an off shift, this array must contain $0$.
 \end{itemize}
 
 \subsection*{Constraint Implementations}
