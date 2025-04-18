@@ -58,6 +58,6 @@ process_file() {
 #
 export -f process_file
 
-find "$inputFolder" -type f | parallel -j 7 --ungroup 'echo Job {} started;' process_file {} $timeLimit $logFile
+find "$inputFolder" -type f | parallel -j 1 --ungroup 'echo Job {} started;' process_file {} $timeLimit $logFile
 
 echo "Processing complete. Log saved to $logFile"

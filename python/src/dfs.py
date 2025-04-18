@@ -46,8 +46,9 @@ def data_parse(filename: str):
 # }}}
 
 
-class IPInstance:
+class dfsInstance:
     def __init__(self, filename: str) -> None:
+        # print("USING DFS")
         numT, numD, cst, A = data_parse(filename)
         self.numTests = numT
         self.numDiseases = numD
@@ -111,12 +112,9 @@ class IPInstance:
                     next_idx = None
                     for idx in self.unassigned:
                         dist = abs(self.tests[idx].solution_value - 0.5)
-                        if dist <= next_dist:
+                        if dist < next_dist:
                             next_idx = idx
                             next_dist = dist
-                    if next_idx is None:
-                        print([abs(self.tests[idx].solution_value - 0.5) for idx in self.unassigned])
-                        raise Exception("AHHHHH")
 
                     to_append += [
                         (best_idx, -1),
@@ -139,13 +137,9 @@ class IPInstance:
                     next_idx = None
                     for idx in self.unassigned:
                         dist = abs(self.tests[idx].solution_value - 0.5)
-                        if dist <= next_dist:
+                        if dist < next_dist:
                             next_idx = idx
                             next_dist = dist
-                    if next_idx is None:
-                        print([abs(self.tests[idx].solution_value - 0.5) for idx in self.unassigned])
-                        raise Exception("AHHHHH")
-
 
                     if obj1 < obj0:
                         to_append = to_append + [
@@ -168,10 +162,12 @@ class IPInstance:
         best_idx = None
         for idx in self.unassigned:
             dist = abs(self.tests[idx].solution_value - 0.5)
-            if dist <= best_dist:
+            if dist < best_dist:
                 best_idx = idx
                 best_dist = dist
 
+        # Contains tuples of assignments
+        # Assignment to -1 is an instruction to reset
         dfs_stack = self.brancher(best_idx)
 
         # Main DFS loop

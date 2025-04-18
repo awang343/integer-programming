@@ -47,8 +47,9 @@ def data_parse(filename: str):
 # }}}
 
 
-class IPInstance:
+class bfslowInstance:
     def __init__(self, filename: str) -> None:
+        # print("Using BFS Low")
         numT, numD, cst, A = data_parse(filename)
         self.numTests = numT
         self.numDiseases = numD
@@ -89,26 +90,21 @@ class IPInstance:
         )
 
     def analyze_node(self, popped_node):
+        # print(popped_node)
         obj_val, solution, assignments = popped_node
 
         # 1. Check if popped node can be pruned
         if obj_val >= self.incumbent_cost:
             return
 
-        # if all([s in [0, 1] for s in solution]):
-        #     self.incumbent_cost = min(obj_val, self.incumbent_cost)
-        #     continue
-
-        # 2. If not, find the variable closest to 0.5
-        best_dist = 0.5
+        # 2. If not, find the variable closest to 0
+        best_dist = 2
         best_idx = None
         for idx, val in enumerate(solution):
-            dist = abs(val - 0.5)
-            if dist <= best_dist:
+            if val < best_dist and val != 0:
                 best_idx = idx
-                best_dist = dist
+                best_dist = val
         # 3. Check if the two nodes added are integer solutions and update incumbent
-
         self.model.add_constraints(
             [self.tests[var] == val for var, val in assignments.items()],
             names=[str(var) for var in assignments],
@@ -122,8 +118,7 @@ class IPInstance:
             if sol is None:
                 continue
 
-            if all([v.solution_value in [0, 1] for v in self.tests]):
-                print(sol.objective_value)
+            if all(v.solution_value in [0, 1] for v in self.tests):
                 self.incumbent_cost = min(sol.objective_value, self.incumbent_cost)
                 continue
 
