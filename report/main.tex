@@ -66,66 +66,33 @@
 
 As a team of two people, we spent approximately $24$ person-hours.
 \vspace{-10pt}
-\section*{Constraint Model Description}
+\section*{Model Description}
 \label{sec:intro}
-\subsection*{Decision Variables}
-We split our decision variables into shift assignments $x$ and hours $h$:
+\subsection*{Setup}
 \begin{itemize}
-    \item \textbf{Tests to Use} - This was a 2d array with dimensions of \texttt{n\_employees} 
-        by \texttt{n\_days}. Each employee would be assigned either a shift (1,2,3) or an off shift (0)
-        for each day.
+    \item \textbf{Tests} - This was an array of binary variables representing whether or not
+    we decide to test each symptom
+    \item \textbf{XOR Matrix}: We created a 3d array of dimension \texttt{numDisease} by
+    \texttt{numDisease} by \texttt{numTest}. Effectively, for each pair of diseases, we had a vector
+    representing which tests could differentiate between those two diseases. This is precomputed.
 \end{itemize}
 
-\subsection*{Constraint Implementations}
+\subsection*{Constraints and Objective}
 
-We implemented constraints pretty directly, and have listed out each below:
 \begin{itemize}
-    \item \textbf{Consistency for h,x}: A shift assignment is off-shift iff hours worked that day is $0$
-    \item \textbf{Min Employees per Shift}: Implemented using the count constraint for each shift
-    \item \textbf{Hour Bounds (per day / per week)}: Implemented by summing across employee shifts
-    \item \textbf{Training Requirement}: Used \texttt{alldiff} constraint on each employee for the first 4 days
-    \item \textbf{Night Shift Limits}: Sliding window test for consecutive night shifts, and count constraint on total night shifts
-    \item \textbf{Symmetry Constraint}: We made sure the employees were ordered using lexigraphic ordering on their assignments to avoid checking equivalent branches of the search tree.
+    \item \textbf{All Differentiable} - For each unique pair of diseases, we had to check that the dot
+    product of which tests are activated with the XOR vector in the XOR Matrix was $\geq 1$. This
+    guarantees that there is at least one active test that differentiates every pair of diseases.
+    \item \textbf{Minimized Cost} - We took the dot product of the active tests vector and the
+    cost vector to obtain the cost for a given assignment of tests. Our model aimed to minimize this.
 \end{itemize}
 
-We tried to figure out a way to include the distribute constraint for assigning
-employees to shifts. However, no matter how we formulated the problem,
-we couldn't figure out how to set a specific cardinality for number of workers on each
-shift since it was a $\geq$ constraint on count and not $=$.
+\subsection*{Relaxation to LP}
+We relaxed the binary variable for tests into a continuous variable from $0$ to $1$. This model 
+produces a lower bound on the cost of testing, and we were able to use it at every node in our
+search tree to get a cost lower bound given a set of forced assignments.
 
-\section*{Search Heuristics}
-We started by realizing that each week was essentially separate (besides the relatively minor consecutive night shifts constraint). As such, we decided to split our search into phases by week, so that our model could focus on one section of the problem at a time. Within each week, we first did search on hours decision variables, and then on shifts decision variables (this ordering worked better in our tests). 
-
-We also tested out different heuristics for selecting variables within hours and shifts. We ended up going with random variable selection for both. For value selection, we just chose to maximize value directly. For hours, this meant we preferred working more hours (to satisfy the minimum daily demand constraint). For shifts, this meant we preferred day shifts over night shifts over off shifts, which also makes sense.
-
-At the end of everything, we realized that certain instances acutally became unsolvable after adding search heuristics. As a result, we ended up using a portfolio of two solvers, one with search and one without search.
-
-\section*{Analysis}
-
-\subsection*{Proposed Constraint Improvements}
-\begin{itemize}
-    \item \textbf{Sleep Schedule} - Employees should work consecutive night/day shifts to reduce ``jet lag."
-    \item \textbf{Shift Preferences} - Employees may prefer specific shifts; we can enforce a minimum satisfaction level.
-    \item \textbf{Consecutive Off Shifts} - Some employees prefer blocks of off days for vacations.
-    \item \textbf{Cost Efficiency} - Maintain a threshold on worker-to-demand ratios to minimize costs while ensuring coverage.
-\end{itemize}
-
-\subsection*{Metrics and Quality Assessment}
-
-We use key metrics to evaluate schedule quality:
-\begin{itemize}
-    \item \textbf{Fairness: Total Hours Worked (Per Employee)} - Ensures balanced workloads. Example: \texttt{[80, 80, 80, 79, 80, 79]}.
-    \item \textbf{Fairness: Avg Hours Worked (Per Shift) (STD)} - Standard deviation of shift hours, expected around 1. Example: \texttt{[0.0, 0.87, 0.72, 0.49]}.
-    \item \textbf{Fairness: Total Night Shifts Worked (Per Employee)} - Ensures even night shift distribution. Example: \texttt{[2, 2, 2, 2, 2]}.
-    \item \textbf{Fairness: Total Off Shifts (Per Employee)} - Ensures fair off-shift distribution. Example: \texttt{[3, 2, 3, 2, 3]}.
-    \item \textbf{Efficiency: Shift Distribution (Per Employee)} - Ensures a reasonable mix of shift types. Example: \texttt{[0.22, 0.14, 0.30, 0.32]}.
-    \item \textbf{Efficiency: Avg Hours Worked (Per Shift)} - Measures shift utilization. Example: \texttt{[0.0, 6.91, 7.50, 7.41]}.
-    \item \textbf{Efficiency: Avg Extra Employees on Shift} - Tracks overstaffing. Example: \texttt{['N/A', 0.64, 0.07, 2.71]}.
-\end{itemize}
-
-Over all of the solutions that we solve our algorithm seems to score relatively high on fairness across employees
-and alright on efficiency over shifts (The algorithm greatly prefers shift 3 due to the effects of our valueselector in our search heuristics). 
-More specifically, employees tend to work roughly the same amount of night shifts and off shifts and approximately (with a std of 1 hour) the same amount of hours per shift. 
-They also tend to work about 7 - 8 hours per shift indicating high efficiency per shift (but oftentimes shift 3 would be overfilled i.e. has the most slack). 
+\section*{Branch and Bound Searching}
+T
 
 \end{document}
