@@ -1,18 +1,32 @@
-\subsection*{Metrics and Quality Assessment}
+\subsection*{Strategy}
 
-To assess the quality of our solutions we added in KPIs into our model to track different metrics in our schedule 
-and then used these metrics to compare the quality of our solutions. We used the following metrics:
-\begin{itemize}
-    \item \textbf{Fairness: Total Hours Worked (per Employee):} The total number of hours worked over the schedule per employee. A example output looks like \texttt{[80, 80, 80, 80, 80, 80, 79, 79, 79, 80, 79, 80, 80, 79, 80, 79, 80]}. From this we can roughly evaluate the fairness of the overall schedule for each employee. 
-    \item \textbf{Fairness: Avg Hours Worked (Per Shift) (STD):} Standard deviation of the average hours worked per shift. An example output looks like \texttt{[0.0, 0.8784226190040044, 0.7208809596176432, 0.4994114182774381]}. Since the domain of hours per shift tends to be 4 - 8 hours, a standard deviation roughly around 1 is expected. 
-    \item \textbf{Fairness: Total Night Shifts Worked (Per Employee):} The total number of night shifts worked per employee. An example output looks like \texttt{[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]}. From this we can monitor whether or not our solutions overassign night shifts to any singular employee. 
-    \item \textbf{Fairness: Total Off Shifts (Per Employee):} The total number of off shifts per employee. An example output looks like \texttt{[3, 2, 3, 2, 3, 3, 4, 4, 4, 3, 4, 3, 3, 4, 2, 3, 3]}. Same as above, we can monitor whether or not our solutions underassign off shifts to any singular employee.
-    \item \textbf{Efficiency: AVG Distribution over shifts (per Employee):} The percent distribution of shifts worked, this moreso is a consequence of \texttt{min\_shifts} but it should reflect a healthy amount of \textt{off\_shifts} and \textt{night\_shifts} relative to other shifts. An example output looks like \texttt{[0.22268907563025211, 0.14285714285714285, 0.3067226890756303, 0.3277310924369748]}.
-    \item \textbf{Efficiency: AVG Hours Worked (Per Shift):} The average number of hours worked per shift. An example output looks like \texttt{[0.0, 6.911764705882353, 7.501960784313725, 7.416666666666666]}.
-    \item \textbf{Efficiency: AVG Extra Employees on Shift (Per Shift):}: The average number of extra employees on each shift. An example output looks like \texttt{['N/A', 0.6428571428571429, 0.07142857142857142, 2.7142857142857144]}.
-\end{itemize}
+To convert our LP solution into an ILP solution, we implemented multiple variants of the Branch and Bound (BnB) algorithm to search for the optimal integer-feasible solution.
 
-Over all of the soltions that we solve our algorithm seems to score relatively high on fairness across employees
-and alright on efficiency over shifts (The algorithm greatly prefers shift 3 due to the effects of our valueselector in our search heuristics). 
-More specifically, employees tend to work roughly the same amount of night shifts and off shifts and approximately (with a std of 1 hour) the same amount of hours per shift. 
-They also tend to work about 7 - 8 hours per shift indicating high efficiency per shift (but oftentimes shift 3 would be overfilled i.e. has the most slack). 
+\subsubsection*{Branch and Bound}
+
+We explored two primary BnB strategies: Depth-First Search (DFS) and Best-First Search (BFS), each enhanced with simple but effective heuristics.
+
+\begin{enumerate}
+    \item \textbf{Depth-First Search (DFS)} —  
+    In our DFS-based BnB, we used a stack to manage the incremental modifications needed at each node, allowing us to efficiently update the LP model with newly fixed variable constraints. This approach avoided reinitializing and resolving the entire LP from scratch at each step. 
+
+    When we encountered an integer-feasible solution, we updated the incumbent cost and aggressively pruned subtrees that could not yield better solutions. To prioritize more promising branches, we employed a greedy strategy that explored nodes with lower LP relaxation costs earlier in the search.
+
+    For variable selection, we experimented with several simple heuristics, including:
+    \begin{itemize}
+        \item Selecting the variable whose LP value is \textbf{closest to 0.5}, targeting variables with the highest uncertainty to reduce the branching factor early.
+        \item Selecting the variable with the \textbf{smallest LP value}, to quickly confirm variables that are likely to be zero and potentially simplify constraints.
+        \item Other variations like furthest from 0.5, largest value, etc., though they were less effective.
+    \end{itemize}
+    We found the “closest to 0.5” and “smallest value” heuristics most effective in practice.
+
+    \item \textbf{Best-First Search (BFS)} —  
+    In our BFS variant, we maintained a priority queue ordered by the LP relaxation cost, always exploring the node with the lowest objective value next. This required us to store the full LP state and objective at each node, as we could no longer rely on efficient in-place LP updates like in DFS.
+
+    For variable selection, we reused the same heuristics as in the DFS strategy to maintain consistency in how we navigated the decision tree.
+\end{enumerate}
+
+\subsection*{Observations}
+\begin{enumerate}
+    \item We were able to get full coverage with these simple heuristics and with DFS + BFS. Interestingly, the smallest and highest LP value outperformed closest to 0.5 contrary to our expectations. 
+\end{enumerate}
