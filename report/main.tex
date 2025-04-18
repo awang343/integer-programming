@@ -92,7 +92,45 @@ We relaxed the binary variable for tests into a continuous variable from $0$ to 
 produces a lower bound on the cost of testing, and we were able to use it at every node in our
 search tree to get a cost lower bound given a set of forced assignments.
 
-\section*{Branch and Bound Searching}
-T
+\section*{B\&B Strategy}
+
+To convert our LP solution into an ILP solution, we implemented multiple variants of the Branch and Bound (BnB) algorithm to search for the optimal integer-feasible solution.
+
+\subsubsection*{Branch and Bound}
+
+We explored two primary BnB strategies: Depth-First Search (DFS) and Best-First Search (BFS), each enhanced with simple but effective heuristics.
+
+\begin{enumerate}
+    \item \textbf{Depth-First Search (DFS)} —  
+    In our DFS-based BnB, we used a stack to manage the incremental modifications needed at each node, allowing us to efficiently update the LP model with newly fixed variable constraints. This approach avoided reinitializing and resolving the entire LP from scratch at each step. 
+
+    When we encountered an integer-feasible solution, we updated the incumbent cost and aggressively pruned subtrees that could not yield better solutions. To prioritize more promising branches, we employed a greedy strategy that explored nodes with lower LP relaxation costs earlier in the search.
+
+    For variable selection, we experimented with several simple heuristics, including:
+    \begin{itemize}
+        \item Selecting the variable whose LP value is \textbf{closest to 0.5}, targeting variables with the highest uncertainty to reduce the branching factor early.
+        \item Selecting the variable with the \textbf{smallest LP value}, to quickly confirm variables that are likely to be zero and potentially simplify constraints.
+        \item Other variations like furthest from 0.5, largest value, etc., though they were less effective.
+    \end{itemize}
+    We found the “closest to 0.5” and “smallest value” heuristics most effective in practice.
+
+    \item \textbf{Best-First Search (BFS)} —  
+    In our BFS variant, we maintained a priority queue ordered by the LP relaxation cost, always exploring the node with the lowest objective value next. This required us to store the full LP state and objective at each node, as we could no longer rely on efficient in-place LP updates like in DFS.
+
+    For variable selection, we reused the same heuristics as in the DFS strategy to maintain consistency in how we navigated the decision tree.
+\end{enumerate}
+
+\subsection*{Observations}
+\begin{enumerate}
+    \item We were able to get full coverage with these simple heuristics and with DFS + BFS.
+    \item Since we only need $1$ test to differentiate between diseases, we posited that the LP solution values would be relatively close to $0$. In other words, we would get more information about what tests \textit{shouldn't} be included compared to what should. This is why the heuristics of smallest LP performs better on more instances than highest LP.
+    \item There seemed to be a CPLEX bug where the solution to an LP with constraint $x_1=1$ would allow 
+    for solutions where $x_1=0.999999998$. In other words, there seemed to be a floating point variable
+    storage error. This forced us to redesign our heuristic calculations to be robust because we didn't
+    want to branch on an already assigned variable that wasn't equal to $1$.
+    \item One thing we noticed was that recently, Brown's CS Dept machines updated their Python version
+    to 3.11.2. This is incompatible with CPLEX, and seems to have broken our compile.sh. There is no
+    global Python 3.9 to copy anymore when installing a new environment with uv.
+\end{enumerate}
 
 \end{document}

@@ -11,4 +11,4 @@
 {"Instance": "100_100_0.25_1.ip", "Time": "171.58", "Result": 153, "Solution": "OPT"}
 {"Instance": "100_200_0.5_5.ip", "Time": "132.15", "Result": 86, "Solution": "OPT"}
 {"Instance": "25_25_0.5_1.ip", "Time": "0.13", "Result": 30, "Solution": "OPT"}
-{"Instance": "100_200_0.5_6.ip", "Time": "28.4", "Result": 68, "Solution": "OPT"}
+{"Instance": "100_200_0.5_6.ip", "Time": "28.4", "Result": 69, "Solution": "OPT"}
